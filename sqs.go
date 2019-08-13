@@ -102,28 +102,6 @@ func (s *SQS) SendMessageContext(ctx aws.Context, in *sqs.SendMessageInput) (*sq
 	return send(ctx, s.Base, s.Propagator, in)
 }
 
-// StartSpanFromMessage a span from an sqs.Message
-func (s *SQS) StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (context.Context, *trace.Span) {
-	name := s.FormatSpanName(msg)
-
-	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(msg)
-	if !ok {
-		return trace.StartSpan(ctx, s.FormatSpanName(msg))
-	}
-
-	sopts := s.StartOptions
-	if s.GetStartOptions != nil {
-		sopts = s.GetStartOptions(msg)
-	}
-
-	opts := []trace.StartOption{
-		trace.WithSpanKind(trace.SpanKindServer),
-		trace.WithSampler(sopts.Sampler),
-	}
-
-	return trace.StartSpanWithRemoteParent(ctx, name, sctx, opts...)
-}
-
 // sender sends a message to an SQS queue
 type sender interface {
 	SendMessage(*sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
@@ -148,6 +126,28 @@ func send(ctx aws.Context, sender sender, propagator propagation.Propagator, in 
 	}
 
 	return sender.SendMessage(in)
+}
+
+// StartSpanFromMessage a span from an sqs.Message
+func (s *SQS) StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (context.Context, *trace.Span) {
+	name := s.FormatSpanName(msg)
+
+	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(msg)
+	if !ok {
+		return trace.StartSpan(ctx, s.FormatSpanName(msg))
+	}
+
+	opts := s.StartOptions
+	if s.GetStartOptions != nil {
+		opts = s.GetStartOptions(msg)
+	}
+
+	return trace.StartSpanWithRemoteParent(
+		ctx,
+		name,
+		sctx,
+		trace.WithSpanKind(trace.SpanKindServer),
+		trace.WithSampler(opts.Sampler))
 }
 
 // SQSDefaultFormatSpanName formats a span name according to the given SQS
