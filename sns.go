@@ -1,14 +1,14 @@
 package awsoc // import "github.com/krak3n/awsoc"
 
 import (
-	"awsoc/propagation"
-	"awsoc/propagation/b3"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
+	"github.com/krak3n/awsoc/propagation"
+	"github.com/krak3n/awsoc/propagation/b3"
 	"go.opencensus.io/trace"
 )
 
