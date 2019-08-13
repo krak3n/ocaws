@@ -1,4 +1,4 @@
-package awsoc
+package awsoc // import "github.com/krak3n/awsoc"
 
 import (
 	"awsoc/propagation"

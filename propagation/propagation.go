@@ -1,4 +1,4 @@
-package propagation
+package propagation // import "github.com/krak3n/awsoc/propagation"
 
 import "go.opencensus.io/trace"
 
