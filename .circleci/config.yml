@@ -3,8 +3,9 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.12
-
     working_directory: /go/src/github.com/krak3b/awsoc
+    environment:
+      GO111MODULE: "on"
     steps:
       - checkout
       - run: go test -v ./...
