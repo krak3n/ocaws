@@ -51,10 +51,20 @@ func SQSFormatSpanName(fn SQSFormatSpanNameFunc) SQSOption {
 	})
 }
 
-// SQS embeds the AWS SDK SQS client
+// SQSAPI embeds the sqsiface.SQSAPI interface and extends it to include methods
+// for sending messages with span context and starting spans from messages.
+type SQSAPI interface {
+	sqsiface.SQSAPI
+
+	SendMessageContext(ctx aws.Context, in *sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
+	StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (context.Context, *trace.Span)
+}
+
+// SQS provides methods for sending messages with trace attributes and starting
+// spans from messages. It embeds the SQS client allowing this to be used as
+// a drop in replacement.
 type SQS struct {
-	// Base is an SQS client that satisfies the sqsiface.SQSAPI interface
-	Base sqsiface.SQSAPI
+	*sqs.SQS
 
 	// Propagator defines how traces will be propagated, if not specified this
 	// will be B3
@@ -75,10 +85,12 @@ type SQS struct {
 	FormatSpanName SQSFormatSpanNameFunc
 }
 
-// NewSQS constructs a new SQS client
-func NewSQS(base sqsiface.SQSAPI, opts ...SQSOption) *SQS {
+// NewSQS constructs a new SQS client with default configuration values. Use
+// SQSOption functions to customise configuration. By default the propagator used
+// is B3.
+func NewSQS(client *sqs.SQS, opts ...SQSOption) *SQS {
 	s := &SQS{
-		Base:       base,
+		SQS:        client,
 		Propagator: b3.New(),
 		StartOptions: trace.StartOptions{
 			SpanKind: trace.SpanKindServer,
@@ -99,7 +111,7 @@ func NewSQS(base sqsiface.SQSAPI, opts ...SQSOption) *SQS {
 // client, this is a best guess at the API looking at existing AWS SDK patterns
 // where context is included, under the hood this will call sqs.SendMessage
 func (s *SQS) SendMessageContext(ctx aws.Context, in *sqs.SendMessageInput) (*sqs.SendMessageOutput, error) {
-	return send(ctx, s.Base, s.Propagator, in)
+	return send(ctx, s.SQS, s.Propagator, in)
 }
 
 // sender sends a message to an SQS queue
@@ -151,16 +163,7 @@ func (s *SQS) StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (conte
 }
 
 // SQSDefaultFormatSpanName formats a span name according to the given SQS
-// message
-// It look at the message attributes for:
-// - Queue Url Path
-// - Topic Name
-// It will also include the Message ID
-// Examples:
-// - Default: sqs.Message/$MESSAGEID
-// - Queue Url: sqs.Message/$QUEUEURLPATH/$MESSAGEID
-// - Topic Name: sqs.Message/$TOPICNAME/$MESSAGEID
-// - Topic Name and Queue Url Path: sqs.Message/$TOPIC/$QUEUEURLPATH/$MESSAGEID
+// message.
 func SQSDefaultFormatSpanName(msg *sqs.Message) string {
 	format := []string{
 		"sqs.Message",

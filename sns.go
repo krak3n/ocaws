@@ -6,7 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"go.krak3n.codes/awsoc/propagation"
 	"go.krak3n.codes/awsoc/propagation/b3"
 	"go.opencensus.io/trace"
@@ -22,21 +21,22 @@ func SNSPropagator(p propagation.Propagator) SNSOption {
 	})
 }
 
-// SNS embeds the AWS SDK SNS client
+// SNS embeds the AWS SDK SNS client allowing to be used as a drop in
+// replacement for your existing SNS client.
 type SNS struct {
-	// Base is an SNS client that satisfies the snsiface.SNSAPI interface
-	Base snsiface.SNSAPI
+	*sns.SNS
 
 	// Propagator defines how traces will be propagated, if not specified this
 	// will be B3
 	Propagator propagation.Propagator
 }
 
-// New constructs a new SNS client with default configuration values. Use Option
-// functions to customise configuration. By default the propagator used is B3.
-func New(client snsiface.SNSAPI, opts ...SNSOption) *SNS {
+// NewSNS constructs a new SNS client with default configuration values. Use
+// SNSOption functions to customise configuration. By default the propagator used
+// is B3.
+func NewSNS(client *sns.SNS, opts ...SNSOption) *SNS {
 	s := &SNS{
-		Base:       client,
+		SNS:        client,
 		Propagator: b3.New(),
 	}
 
@@ -50,7 +50,7 @@ func New(client snsiface.SNSAPI, opts ...SNSOption) *SNS {
 // PublishWithContext wraps the AWS SDK SNS PublishWithContext method applying
 // span context to the input message attributes according the given propagator
 func (sns *SNS) PublishWithContext(ctx aws.Context, input *sns.PublishInput, opts ...request.Option) (*sns.PublishOutput, error) {
-	return publish(ctx, sns.Base, sns.Propagator, input, opts...)
+	return publish(ctx, sns.SNS, sns.Propagator, input, opts...)
 }
 
 // A publisher publishes messages to SNS
