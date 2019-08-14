@@ -1,4 +1,4 @@
-package b3 // import "github.com/krak3n/awsoc/propagation/b3"
+package b3 // import "go.krak3n.codes/awsoc/propagation/b3"
 
 import (
 	"github.com/aws/aws-sdk-go/aws"

@@ -1,4 +1,4 @@
-package awsoc // import "github.com/krak3n/awsoc"
+package awsoc // import "go.krak3n.codes/awsoc"
 
 // Extra attribute keys placed onto message attributes unrelated to Span Context
 const (
