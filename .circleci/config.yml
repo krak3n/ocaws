@@ -9,6 +9,9 @@ jobs:
     working_directory: /go/src/github.com/krak3n/awsoc
     environment:
       GO111MODULE: "on"
+      AWS_SNS_ENDPOINT: http://localhost:4575
+      AWS_ACCESS_KEY_ID: foo
+      AWS_SECRET_ACCESS_KEY: bar
     steps:
       - checkout
       - run: go test -v ./...
