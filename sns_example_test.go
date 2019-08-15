@@ -35,12 +35,23 @@ func ExampleSNS_PublishWithContext() {
 	ctx, span := trace.StartSpan(context.Background(), "sns/test")
 	defer span.End()
 
+	// Create SNS Client
+	c := awsoc.NewSNS(sns.New(session))
+
+	// Create Topic
+	t, err := c.CreateTopic(&sns.CreateTopicInput{
+		Name: aws.String("foo"),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Publish message with span context message attributes
 	in := &sns.PublishInput{
-		TopicArn: aws.String("arn:aws:sns:eu-west-1:123456789012:Foo"),
+		TopicArn: t.TopicArn,
 		Message:  aws.String(`{"foo":"bar"}`),
 	}
 
-	c := awsoc.NewSNS(sns.New(session))
 	if _, err := c.PublishWithContext(ctx, in); err != nil {
 		log.Fatal(err)
 	}
@@ -54,5 +65,5 @@ func ExampleSNS_PublishWithContext() {
 	// TraceID: 616263646566676869676b6c6d6e6f71
 	// SpanID: 6162636465666768
 	// Span Sampled: 0
-	// Trace Topic Name: Foo
+	// Trace Topic Name: foo
 }
