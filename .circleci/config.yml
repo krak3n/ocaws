@@ -3,6 +3,9 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.12
+      - image: localstack/localstack:0.10.2
+        environment:
+          - SERVICES=sqs,sns
     working_directory: /go/src/github.com/krak3n/awsoc
     environment:
       GO111MODULE: "on"

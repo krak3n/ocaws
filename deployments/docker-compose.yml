@@ -1,0 +1,9 @@
+version: '2.1'
+
+services:
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4567-4584:4567-4584"
+    environment:
+      - SERVICES=sns,sqs
