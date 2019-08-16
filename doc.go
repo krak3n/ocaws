@@ -23,6 +23,8 @@ a message as you normally would using PublishWithContext.
     client := ocsns.New(session)
     client.PublishWithContext(ctx, &sns.PublishInput{...})
 
+See more complete examples in the ocsns documentation: https://godoc.org/go.krak3n.codes/ocaws/ocsns#pkg-examples
+
 
 SQS
 
@@ -34,7 +36,6 @@ new SendMessageContext method to send a message to an SQS with span context.
 
     client := ocsqs.New(session)
     client.SendMessageContext(ctx, &sqs.SendMessageInput{...})
-
 
 To receive messages from SQS and start spans use the StartSpanFromMessage method
 which will return you a span based on the messages span context message attributes.
@@ -48,5 +49,6 @@ which will return you a span based on the messages span context message attribut
         // Do work
     }
 
+See more complete examples in the ocsns documentation: https://godoc.org/go.krak3n.codes/ocaws/ocsqs#pkg-examples
 */
 package ocaws // import "go.krak3n.codes/ocaws"
