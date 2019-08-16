@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"go.krak3n.codes/awsoc"
+	"go.krak3n.codes/awsoc/awsoctest"
 	"go.krak3n.codes/awsoc/propagation/b3"
 	"go.opencensus.io/trace"
 )
@@ -66,4 +67,47 @@ func ExampleSQS_SendMessageContext() {
 	// SpanID: 6162636465666768
 	// Span Sampled: 0
 	// Trace Queue URL: http://localhost:4576/queue/foo
+}
+
+func ExampleSQS_StartSpanFromMessage() {
+	// Create a message with trace attributes, publish a message via SNS or SQS
+	msg := &sqs.Message{
+		MessageAttributes: map[string]*sqs.MessageAttributeValue{
+			b3.TraceIDKey: {
+				DataType:    aws.String("String"),
+				StringValue: aws.String(awsoctest.DefaultTraceID.String()),
+			},
+			b3.SpanIDKey: {
+				DataType:    aws.String("String"),
+				StringValue: aws.String(awsoctest.DefaultSpanID.String()),
+			},
+			b3.SpanSampledKey: {
+				DataType:    aws.String("String"),
+				StringValue: aws.String("0"),
+			},
+		},
+	}
+
+	session, err := session.NewSession(&aws.Config{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c := awsoc.NewSQS(sqs.New(session))
+
+	ctx := context.Background()
+	ctx, span := c.StartSpanFromMessage(ctx, msg)
+	defer span.End()
+
+	if span != nil {
+		sc := span.SpanContext()
+		fmt.Println("TraceID:", sc.TraceID.String())
+		fmt.Println("SpanID:", sc.SpanID.String())
+		fmt.Println("Span Sampled:", sc.IsSampled())
+	}
+
+	// Output:
+	// TraceID: 616263646566676869676b6c6d6e6f71
+	// SpanID: 6162636465666768
+	// Span Sampled: false
 }

@@ -178,8 +178,13 @@ func SQSDefaultFormatSpanName(msg *sqs.Message) string {
 		"%s",
 	}
 
+	mid := "unknwonMessageId"
+	if msg.MessageId != nil {
+		mid = *msg.MessageId
+	}
+
 	values := []interface{}{
-		*msg.MessageId,
+		mid,
 	}
 
 	if msg.MessageAttributes != nil {
