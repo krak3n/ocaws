@@ -16,6 +16,9 @@ import (
 	"go.opencensus.io/trace"
 )
 
+// spanContextKey is the context key for a span context on a context
+type spanContextKey = struct{}
+
 // A GetStartOptionsFunc returns start options on message by message basis
 type GetStartOptionsFunc func(*sqs.Message) trace.StartOptions
 
@@ -60,6 +63,7 @@ type SQSAPI interface {
 
 	SendMessageContext(ctx aws.Context, in *sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
 	StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (context.Context, *trace.Span)
+	ContextWithSpanFromMessage(ctx context.Context, msg *sqs.Message) context.Context
 }
 
 // SQS provides methods for sending messages with trace attributes and starting
@@ -151,9 +155,7 @@ func send(ctx aws.Context, sender sender, propagator propagation.Propagator, in 
 
 // StartSpanFromMessage a span from an sqs.Message
 func (s *SQS) StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (context.Context, *trace.Span) {
-	name := s.FormatSpanName(msg)
-
-	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(msg)
+	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(msg.MessageAttributes)
 	if !ok {
 		return trace.StartSpan(ctx, s.FormatSpanName(msg))
 	}
@@ -165,10 +167,27 @@ func (s *SQS) StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (conte
 
 	return trace.StartSpanWithRemoteParent(
 		ctx,
-		name,
+		s.FormatSpanName(msg),
 		sctx,
 		trace.WithSpanKind(trace.SpanKindServer),
 		trace.WithSampler(opts.Sampler))
+}
+
+// ContextWithSpanFromMessage will add a span context from a message onto the given
+// context retuning a new context, this allows for defered starting of spans
+func (s *SQS) ContextWithSpanFromMessage(ctx context.Context, msg *sqs.Message) context.Context {
+	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(msg.MessageAttributes)
+	if !ok {
+		return ctx
+	}
+
+	return context.WithValue(ctx, spanContextKey{}, sctx)
+}
+
+// SpanFromContext will return a span context from context
+func SpanFromContext(ctx context.Context) (trace.SpanContext, bool) {
+	v, ok := ctx.Value(spanContextKey{}).(trace.SpanContext)
+	return v, ok
 }
 
 // DefaultFormatSpanName formats a span name according to the given SQS

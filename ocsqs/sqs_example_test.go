@@ -16,7 +16,9 @@ import (
 	"go.opencensus.io/trace"
 )
 
-func ExampleSQS_SendMessageContext() {
+var sess *session.Session
+
+func init() {
 	cfg := &aws.Config{
 		Region: aws.String("eu-west-1"),
 	}
@@ -29,16 +31,20 @@ func ExampleSQS_SendMessageContext() {
 		cfg.Endpoint = aws.String(v)
 	}
 
-	session, err := session.NewSession(cfg)
+	s, err := session.NewSession(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	sess = s
+}
+
+func ExampleSQS_SendMessageContext() {
 	ctx, span := trace.StartSpan(context.Background(), "sqs/ExampleSQS_SendMessageContext")
 	defer span.End()
 
 	// Create SNS Client
-	c := ocsqs.New(sqs.New(session))
+	c := ocsqs.New(sqs.New(sess))
 
 	// Create Topic
 	q, err := c.CreateQueue(&sqs.CreateQueueInput{
@@ -89,12 +95,7 @@ func ExampleSQS_StartSpanFromMessage() {
 		},
 	}
 
-	session, err := session.NewSession(&aws.Config{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	c := ocsqs.New(sqs.New(session))
+	c := ocsqs.New(sqs.New(sess))
 
 	ctx := context.Background()
 	ctx, span := c.StartSpanFromMessage(ctx, msg)
@@ -102,6 +103,43 @@ func ExampleSQS_StartSpanFromMessage() {
 
 	if span != nil {
 		sc := span.SpanContext()
+		fmt.Println("TraceID:", sc.TraceID.String())
+		fmt.Println("SpanID:", sc.SpanID.String())
+		fmt.Println("Span Sampled:", sc.IsSampled())
+	}
+
+	// Output:
+	// TraceID: 616263646566676869676b6c6d6e6f71
+	// SpanID: 6162636465666768
+	// Span Sampled: false
+}
+
+func ExampleSQS_ContextWithSpanFromMessage() {
+	// Create a message with trace attributes, publish a message via SNS or SQS
+	msg := &sqs.Message{
+		MessageAttributes: map[string]*sqs.MessageAttributeValue{
+			b3.TraceIDKey: {
+				DataType:    aws.String("String"),
+				StringValue: aws.String(ocawstest.DefaultTraceID.String()),
+			},
+			b3.SpanIDKey: {
+				DataType:    aws.String("String"),
+				StringValue: aws.String(ocawstest.DefaultSpanID.String()),
+			},
+			b3.SpanSampledKey: {
+				DataType:    aws.String("String"),
+				StringValue: aws.String("0"),
+			},
+		},
+	}
+
+	c := ocsqs.New(sqs.New(sess))
+
+	ctx := context.Background()
+	ctx = c.ContextWithSpanFromMessage(ctx, msg)
+
+	sc, ok := ocsqs.SpanFromContext(ctx)
+	if ok {
 		fmt.Println("TraceID:", sc.TraceID.String())
 		fmt.Println("SpanID:", sc.SpanID.String())
 		fmt.Println("Span Sampled:", sc.IsSampled())
