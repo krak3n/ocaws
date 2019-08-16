@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"go.krak3n.codes/awsoc/propagation"
@@ -116,7 +117,7 @@ func (s *SQS) SendMessageContext(ctx aws.Context, in *sqs.SendMessageInput) (*sq
 
 // sender sends a message to an SQS queue
 type sender interface {
-	SendMessage(*sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
+	SendMessageRequest(*sqs.SendMessageInput) (*request.Request, *sqs.SendMessageOutput)
 }
 
 // send sends message to an SQS queue adding span cotnext message attributes for
@@ -137,7 +138,14 @@ func send(ctx aws.Context, sender sender, propagator propagation.Propagator, in 
 		}
 	}
 
-	return sender.SendMessage(in)
+	req, out := sender.SendMessageRequest(in)
+	req.SetContext(ctx)
+
+	if err := req.Send(); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 // StartSpanFromMessage a span from an sqs.Message
