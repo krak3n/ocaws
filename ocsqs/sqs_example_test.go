@@ -1,4 +1,4 @@
-package awsoc_test
+package ocsqs_test
 
 import (
 	"context"
@@ -9,9 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"go.krak3n.codes/awsoc"
-	"go.krak3n.codes/awsoc/awsoctest"
-	"go.krak3n.codes/awsoc/propagation/b3"
+	"go.krak3n.codes/ocaws"
+	"go.krak3n.codes/ocaws/ocawstest"
+	"go.krak3n.codes/ocaws/ocsqs"
+	"go.krak3n.codes/ocaws/propagation/b3"
 	"go.opencensus.io/trace"
 )
 
@@ -37,7 +38,7 @@ func ExampleSQS_SendMessageContext() {
 	defer span.End()
 
 	// Create SNS Client
-	c := awsoc.NewSQS(sqs.New(session))
+	c := ocsqs.New(sqs.New(session))
 
 	// Create Topic
 	q, err := c.CreateQueue(&sqs.CreateQueueInput{
@@ -60,7 +61,7 @@ func ExampleSQS_SendMessageContext() {
 	fmt.Println("TraceID:", *in.MessageAttributes[b3.TraceIDKey].StringValue)
 	fmt.Println("SpanID:", *in.MessageAttributes[b3.SpanIDKey].StringValue)
 	fmt.Println("Span Sampled:", *in.MessageAttributes[b3.SpanSampledKey].StringValue)
-	fmt.Println("Trace Queue URL:", *in.MessageAttributes[awsoc.TraceQueueURL].StringValue)
+	fmt.Println("Trace Queue URL:", *in.MessageAttributes[ocaws.TraceQueueURL].StringValue)
 
 	// Output:
 	// TraceID: 616263646566676869676b6c6d6e6f71
@@ -75,11 +76,11 @@ func ExampleSQS_StartSpanFromMessage() {
 		MessageAttributes: map[string]*sqs.MessageAttributeValue{
 			b3.TraceIDKey: {
 				DataType:    aws.String("String"),
-				StringValue: aws.String(awsoctest.DefaultTraceID.String()),
+				StringValue: aws.String(ocawstest.DefaultTraceID.String()),
 			},
 			b3.SpanIDKey: {
 				DataType:    aws.String("String"),
-				StringValue: aws.String(awsoctest.DefaultSpanID.String()),
+				StringValue: aws.String(ocawstest.DefaultSpanID.String()),
 			},
 			b3.SpanSampledKey: {
 				DataType:    aws.String("String"),
@@ -93,7 +94,7 @@ func ExampleSQS_StartSpanFromMessage() {
 		log.Fatal(err)
 	}
 
-	c := awsoc.NewSQS(sqs.New(session))
+	c := ocsqs.New(sqs.New(session))
 
 	ctx := context.Background()
 	ctx, span := c.StartSpanFromMessage(ctx, msg)

@@ -1,16 +1,16 @@
-package awsoc
+package ocsns
 
 import (
 	"os"
 	"testing"
 
-	"go.krak3n.codes/awsoc/awsoctest"
+	"go.krak3n.codes/ocaws/ocawstest"
 	"go.opencensus.io/trace"
 )
 
 func TestMain(m *testing.M) {
 	trace.ApplyConfig(trace.Config{
-		IDGenerator: awsoctest.NewTestIDGenerator(),
+		IDGenerator: ocawstest.NewTestIDGenerator(),
 	})
 
 	os.Exit(m.Run())

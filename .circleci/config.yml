@@ -6,7 +6,7 @@ jobs:
       - image: localstack/localstack:0.10.2
         environment:
           - SERVICES=sqs,sns
-    working_directory: /go/src/github.com/krak3n/awsoc
+    working_directory: /go/src/github.com/krak3n/ocaws
     environment:
       GO111MODULE: "on"
       AWS_SNS_ENDPOINT: http://localhost:4575

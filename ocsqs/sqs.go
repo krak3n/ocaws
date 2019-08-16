@@ -1,4 +1,4 @@
-package awsoc // import "go.krak3n.codes/awsoc"
+package ocsqs // import "go.krak3n.codes/ocaws/ocsqs"
 
 import (
 	"context"
@@ -10,44 +10,45 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-	"go.krak3n.codes/awsoc/propagation"
-	"go.krak3n.codes/awsoc/propagation/b3"
+	"go.krak3n.codes/ocaws"
+	"go.krak3n.codes/ocaws/propagation"
+	"go.krak3n.codes/ocaws/propagation/b3"
 	"go.opencensus.io/trace"
 )
 
-// A SQSGetStartOptionsFunc returns start options on message by message basis
-type SQSGetStartOptionsFunc func(*sqs.Message) trace.StartOptions
+// A GetStartOptionsFunc returns start options on message by message basis
+type GetStartOptionsFunc func(*sqs.Message) trace.StartOptions
 
-// A SQSFormatSpanNameFunc formats a span name from the sqs message
-type SQSFormatSpanNameFunc func(*sqs.Message) string
+// A FormatSpanNameFunc formats a span name from the sqs message
+type FormatSpanNameFunc func(*sqs.Message) string
 
-// An SQSOption function customises a clients configuration
-type SQSOption func(s *SQS)
+// An Option function customises a clients configuration
+type Option func(s *SQS)
 
-// SQSPropagator sets the clients propagator
-func SQSPropagator(p propagation.Propagator) SQSOption {
-	return SQSOption(func(s *SQS) {
+// Propagator sets the clients propagator
+func Propagator(p propagation.Propagator) Option {
+	return Option(func(s *SQS) {
 		s.Propagator = p
 	})
 }
 
-// SQSStartOptions sets the clients StartOptions
-func SQSStartOptions(o trace.StartOptions) SQSOption {
-	return SQSOption(func(s *SQS) {
+// StartOptions sets the clients StartOptions
+func StartOptions(o trace.StartOptions) Option {
+	return Option(func(s *SQS) {
 		s.StartOptions = o
 	})
 }
 
-// SQSGetStartOptions sets the SQS clients GetStartOptions func
-func SQSGetStartOptions(fn SQSGetStartOptionsFunc) SQSOption {
-	return SQSOption(func(s *SQS) {
+// GetStartOptions sets the SQS clients GetStartOptions func
+func GetStartOptions(fn GetStartOptionsFunc) Option {
+	return Option(func(s *SQS) {
 		s.GetStartOptions = fn
 	})
 }
 
-// SQSFormatSpanName sets the SQS clients formant name func
-func SQSFormatSpanName(fn SQSFormatSpanNameFunc) SQSOption {
-	return SQSOption(func(s *SQS) {
+// FormatSpanName sets the SQS clients formant name func
+func FormatSpanName(fn FormatSpanNameFunc) Option {
+	return Option(func(s *SQS) {
 		s.FormatSpanName = fn
 	})
 }
@@ -79,17 +80,17 @@ type SQS struct {
 
 	// GetStartOptions allows to set start options per message. If set,
 	// StartOptions is going to be ignored.
-	GetStartOptions SQSGetStartOptionsFunc
+	GetStartOptions GetStartOptionsFunc
 
 	// FormatSpanName formats the span name based on the given sqs.Message. See
 	// DefaultFormatSpanName for the default format
-	FormatSpanName SQSFormatSpanNameFunc
+	FormatSpanName FormatSpanNameFunc
 }
 
-// NewSQS constructs a new SQS client with default configuration values. Use
-// SQSOption functions to customise configuration. By default the propagator used
+// New constructs a new SQS client with default configuration values. Use
+// Option functions to customise configuration. By default the propagator used
 // is B3.
-func NewSQS(client *sqs.SQS, opts ...SQSOption) *SQS {
+func New(client *sqs.SQS, opts ...Option) *SQS {
 	s := &SQS{
 		SQS:        client,
 		Propagator: b3.New(),
@@ -132,7 +133,7 @@ func send(ctx aws.Context, sender sender, propagator propagation.Propagator, in 
 	}
 
 	if in.QueueUrl != nil {
-		in.MessageAttributes[TraceQueueURL] = &sqs.MessageAttributeValue{
+		in.MessageAttributes[ocaws.TraceQueueURL] = &sqs.MessageAttributeValue{
 			StringValue: in.QueueUrl,
 			DataType:    aws.String("String"),
 		}
@@ -189,12 +190,12 @@ func SQSDefaultFormatSpanName(msg *sqs.Message) string {
 
 	if msg.MessageAttributes != nil {
 		var topic string
-		if v, ok := msg.MessageAttributes[TraceTopicName]; ok && v.StringValue != nil {
+		if v, ok := msg.MessageAttributes[ocaws.TraceTopicName]; ok && v.StringValue != nil {
 			topic = *v.StringValue
 		}
 
 		var queue string
-		if v, ok := msg.MessageAttributes[TraceQueueURL]; ok && v.StringValue != nil {
+		if v, ok := msg.MessageAttributes[ocaws.TraceQueueURL]; ok && v.StringValue != nil {
 			if u, err := url.Parse(*v.StringValue); err != nil {
 				queue = u.Path
 			}

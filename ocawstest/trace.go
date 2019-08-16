@@ -1,4 +1,4 @@
-package awsoctest
+package ocawstest
 
 import (
 	"go.opencensus.io/trace"

@@ -1,4 +1,4 @@
-package awsoc // import "go.krak3n.codes/awsoc"
+package ocsns // import "go.krak3n.codes/ocaws/ocsns"
 
 import (
 	"strings"
@@ -6,17 +6,18 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"go.krak3n.codes/awsoc/propagation"
-	"go.krak3n.codes/awsoc/propagation/b3"
+	"go.krak3n.codes/ocaws"
+	"go.krak3n.codes/ocaws/propagation"
+	"go.krak3n.codes/ocaws/propagation/b3"
 	"go.opencensus.io/trace"
 )
 
-// An SNSOption function customises a clients configuration
-type SNSOption func(*SNS)
+// An Option function customises a clients configuration
+type Option func(*SNS)
 
-// SNSPropagator sets the clients propagator
-func SNSPropagator(p propagation.Propagator) SNSOption {
-	return SNSOption(func(s *SNS) {
+// Propagator sets the clients propagator
+func Propagator(p propagation.Propagator) Option {
+	return Option(func(s *SNS) {
 		s.Propagator = p
 	})
 }
@@ -31,10 +32,10 @@ type SNS struct {
 	Propagator propagation.Propagator
 }
 
-// NewSNS constructs a new SNS client with default configuration values. Use
-// SNSOption functions to customise configuration. By default the propagator used
+// New constructs a new SNS client with default configuration values. Use
+// Option functions to customise configuration. By default the propagator used
 // is B3.
-func NewSNS(client *sns.SNS, opts ...SNSOption) *SNS {
+func New(client *sns.SNS, opts ...Option) *SNS {
 	s := &SNS{
 		SNS:        client,
 		Propagator: b3.New(),
@@ -77,7 +78,7 @@ func publish(ctx aws.Context, publisher publisher, propagator propagation.Propag
 	}
 
 	if arn != "" {
-		in.MessageAttributes[TraceTopicName] = &sns.MessageAttributeValue{
+		in.MessageAttributes[ocaws.TraceTopicName] = &sns.MessageAttributeValue{
 			StringValue: aws.String(topicNameFromARN(arn)),
 			DataType:    aws.String("String"),
 		}

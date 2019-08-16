@@ -1,4 +1,4 @@
-package awsoc_test
+package ocsns_test
 
 import (
 	"context"
@@ -9,8 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"go.krak3n.codes/awsoc"
-	"go.krak3n.codes/awsoc/propagation/b3"
+	"go.krak3n.codes/ocaws"
+	"go.krak3n.codes/ocaws/ocsns"
+	"go.krak3n.codes/ocaws/propagation/b3"
 	"go.opencensus.io/trace"
 )
 
@@ -36,7 +37,7 @@ func ExampleSNS_PublishWithContext() {
 	defer span.End()
 
 	// Create SNS Client
-	c := awsoc.NewSNS(sns.New(session))
+	c := ocsns.New(sns.New(session))
 
 	// Create Topic
 	t, err := c.CreateTopic(&sns.CreateTopicInput{
@@ -59,7 +60,7 @@ func ExampleSNS_PublishWithContext() {
 	fmt.Println("TraceID:", *in.MessageAttributes[b3.TraceIDKey].StringValue)
 	fmt.Println("SpanID:", *in.MessageAttributes[b3.SpanIDKey].StringValue)
 	fmt.Println("Span Sampled:", *in.MessageAttributes[b3.SpanSampledKey].StringValue)
-	fmt.Println("Trace Topic Name:", *in.MessageAttributes[awsoc.TraceTopicName].StringValue)
+	fmt.Println("Trace Topic Name:", *in.MessageAttributes[ocaws.TraceTopicName].StringValue)
 
 	// Output:
 	// TraceID: 616263646566676869676b6c6d6e6f71
