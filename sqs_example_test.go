@@ -65,5 +65,5 @@ func ExampleSQS_SendMessageContext() {
 	// TraceID: 616263646566676869676b6c6d6e6f71
 	// SpanID: 6162636465666768
 	// Span Sampled: 0
-	// Trace Queue URL: https://sqs.eu-west-1.amazonaws.com/278413774398/foo
+	// Trace Queue URL: http://localhost:4576/queue/foo
 }
