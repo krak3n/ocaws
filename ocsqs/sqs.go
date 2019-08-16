@@ -97,7 +97,7 @@ func New(client *sqs.SQS, opts ...Option) *SQS {
 		StartOptions: trace.StartOptions{
 			SpanKind: trace.SpanKindServer,
 		},
-		FormatSpanName: SQSDefaultFormatSpanName,
+		FormatSpanName: DefaultFormatSpanName,
 	}
 
 	for _, opt := range opts {
@@ -171,9 +171,9 @@ func (s *SQS) StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (conte
 		trace.WithSampler(opts.Sampler))
 }
 
-// SQSDefaultFormatSpanName formats a span name according to the given SQS
+// DefaultFormatSpanName formats a span name according to the given SQS
 // message.
-func SQSDefaultFormatSpanName(msg *sqs.Message) string {
+func DefaultFormatSpanName(msg *sqs.Message) string {
 	format := []string{
 		"sqs.Message",
 		"%s",
