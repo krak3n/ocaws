@@ -3,7 +3,7 @@
 #
 
 COVEROUT  ?= cover.out
-COVERMODE ?= atomic
+COVERMODE ?= count
 TESTTAGS  ?=
 
 .PHONY: test

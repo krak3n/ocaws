@@ -215,8 +215,8 @@ func DefaultFormatSpanName(msg *sqs.Message) string {
 
 		var queue string
 		if v, ok := msg.MessageAttributes[ocaws.TraceQueueURL]; ok && v.StringValue != nil {
-			if u, err := url.Parse(*v.StringValue); err != nil {
-				queue = u.Path
+			if u, err := url.Parse(*v.StringValue); err == nil {
+				queue = strings.TrimLeft(u.Path, "/")
 			}
 		}
 
