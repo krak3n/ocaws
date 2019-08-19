@@ -8,8 +8,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.krak3n.codes/ocaws"
 	"go.krak3n.codes/ocaws/ocawstest"
 	"go.krak3n.codes/ocaws/propagation"
@@ -29,6 +31,40 @@ func TestMain(m *testing.M) {
 	})
 
 	os.Exit(m.Run())
+}
+
+func TestNew(t *testing.T) {
+	session, err := session.NewSession(&aws.Config{})
+	require.NoError(t, err)
+
+	snsclient := sns.New(session)
+
+	type TestCase struct {
+		tName  string
+		opts   []Option
+		client *SNS
+	}
+	tt := []TestCase{
+		{
+			tName: "with propagator",
+			opts: []Option{
+				WithPropagator(&propagationtest.TestPropator{}),
+			},
+			client: &SNS{
+				SNS:        snsclient,
+				Propagator: &propagationtest.TestPropator{},
+			},
+		},
+	}
+	for _, tc := range tt {
+		tc := tc
+		t.Run(tc.tName, func(t *testing.T) {
+			t.Parallel()
+
+			c := New(snsclient, tc.opts...)
+			assert.Equal(t, tc.client, c)
+		})
+	}
 }
 
 func Test_publish(t *testing.T) {

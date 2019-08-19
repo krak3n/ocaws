@@ -15,8 +15,8 @@ import (
 // An Option function customises a clients configuration
 type Option func(*SNS)
 
-// Propagator sets the clients propagator
-func Propagator(p propagation.Propagator) Option {
+// WithPropagator sets the clients propagator
+func WithPropagator(p propagation.Propagator) Option {
 	return Option(func(s *SNS) {
 		s.Propagator = p
 	})
@@ -83,9 +83,5 @@ func publish(ctx aws.Context, publisher publisher, propagator propagation.Propag
 // : and rteturns the last element of the slice
 func topicNameFromARN(arn string) string {
 	parts := strings.Split(arn, ":")
-	if len(parts) == 0 {
-		return ""
-	}
-
 	return parts[len(parts)-1]
 }
