@@ -302,3 +302,41 @@ func TestSpanContextFromMessageAttributes(t *testing.T) {
 		})
 	}
 }
+
+func TestMessageAttributeValueToAttributes(t *testing.T) {
+	type TestCase struct {
+		tName string
+		in    interface{}
+		attr  Attributes
+	}
+	tt := []TestCase{
+		{
+			tName: "sqs nil string values",
+			in: map[string]*sqs.MessageAttributeValue{
+				TraceIDKey:     &sqs.MessageAttributeValue{},
+				SpanIDKey:      &sqs.MessageAttributeValue{},
+				SpanSampledKey: &sqs.MessageAttributeValue{},
+			},
+			attr: Attributes{},
+		},
+		{
+			tName: "sns nil string values",
+			in: map[string]*sns.MessageAttributeValue{
+				TraceIDKey:     &sns.MessageAttributeValue{},
+				SpanIDKey:      &sns.MessageAttributeValue{},
+				SpanSampledKey: &sns.MessageAttributeValue{},
+			},
+			attr: Attributes{},
+		},
+	}
+	for _, tc := range tt {
+		tc := tc
+		t.Run(tc.tName, func(t *testing.T) {
+			t.Parallel()
+
+			attr := MessageAttributeValueToAttributes(tc.in)
+
+			assert.Equal(t, tc.attr, attr)
+		})
+	}
+}
