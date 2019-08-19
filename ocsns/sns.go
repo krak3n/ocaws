@@ -61,26 +61,18 @@ type publisher interface {
 
 // publish piblishes messages to SNS
 func publish(ctx aws.Context, publisher publisher, propagator propagation.Propagator, in *sns.PublishInput, opts ...request.Option) (*sns.PublishOutput, error) {
-	if in.MessageAttributes == nil {
-		in.MessageAttributes = make(map[string]*sns.MessageAttributeValue)
-	}
-
 	if span := trace.FromContext(ctx); span != nil {
-		propagator.SpanContextToMessageAttributes(span.SpanContext(), in.MessageAttributes)
-	}
+		if in.MessageAttributes == nil {
+			in.MessageAttributes = make(map[string]*sns.MessageAttributeValue)
+		}
 
-	var arn string
-	switch {
-	case in.TopicArn != nil:
-		arn = *in.TopicArn
-	case in.TargetArn != nil:
-		arn = *in.TargetArn
-	}
-
-	if arn != "" {
-		in.MessageAttributes[ocaws.TraceTopicName] = &sns.MessageAttributeValue{
-			StringValue: aws.String(topicNameFromARN(arn)),
-			DataType:    aws.String("String"),
+		if propagator.SpanContextToMessageAttributes(span.SpanContext(), in.MessageAttributes) {
+			if in.TopicArn != nil {
+				in.MessageAttributes[ocaws.TraceTopicName] = &sns.MessageAttributeValue{
+					StringValue: aws.String(topicNameFromARN(*in.TopicArn)),
+					DataType:    aws.String("String"),
+				}
+			}
 		}
 	}
 
