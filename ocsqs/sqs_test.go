@@ -2,6 +2,8 @@ package ocsqs
 
 import (
 	"os"
+	"reflect"
+	"runtime"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -9,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.krak3n.codes/ocaws"
 	"go.krak3n.codes/ocaws/ocawstest"
+	"go.krak3n.codes/ocaws/propagation/propagationtest"
 	"go.opencensus.io/trace"
 )
 
@@ -18,6 +21,46 @@ func TestMain(m *testing.M) {
 	})
 
 	os.Exit(m.Run())
+}
+
+func TestWithPropagator(t *testing.T) {
+	p := &propagationtest.TestPropator{}
+	c := New(nil, WithPropagator(p))
+
+	assert.Equal(t, c.Propagator, p)
+}
+
+func TestWithStartOptions(t *testing.T) {
+	s := trace.StartOptions{
+		SpanKind: trace.SpanKindClient,
+	}
+	c := New(nil, WithStartOptions(s))
+
+	assert.Equal(t, c.StartOptions, s)
+}
+
+func TestWithGetStartOptions(t *testing.T) {
+	var fn GetStartOptionsFunc = GetStartOptionsFunc(func(*sqs.Message) trace.StartOptions {
+		return trace.StartOptions{
+			SpanKind: trace.SpanKindClient,
+		}
+	})
+	c := New(nil, WithGetStartOptions(fn))
+
+	fn1 := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
+	fn2 := runtime.FuncForPC(reflect.ValueOf(c.GetStartOptions).Pointer()).Name()
+	assert.Equal(t, fn1, fn2)
+}
+
+func TestWithFormatSpanName(t *testing.T) {
+	var fn FormatSpanNameFunc = FormatSpanNameFunc(func(*sqs.Message) string {
+		return "foo"
+	})
+	c := New(nil, WithFormatSpanName(fn))
+
+	fn1 := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
+	fn2 := runtime.FuncForPC(reflect.ValueOf(c.FormatSpanName).Pointer()).Name()
+	assert.Equal(t, fn1, fn2)
 }
 
 func TestDefaultFormatSpanName(t *testing.T) {

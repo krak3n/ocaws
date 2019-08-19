@@ -28,29 +28,29 @@ type FormatSpanNameFunc func(*sqs.Message) string
 // An Option function customises a clients configuration
 type Option func(s *SQS)
 
-// Propagator sets the clients propagator
-func Propagator(p propagation.Propagator) Option {
+// WithPropagator sets the clients propagator
+func WithPropagator(p propagation.Propagator) Option {
 	return Option(func(s *SQS) {
 		s.Propagator = p
 	})
 }
 
-// StartOptions sets the clients StartOptions
-func StartOptions(o trace.StartOptions) Option {
+// WithStartOptions sets the clients StartOptions
+func WithStartOptions(o trace.StartOptions) Option {
 	return Option(func(s *SQS) {
 		s.StartOptions = o
 	})
 }
 
-// GetStartOptions sets the SQS clients GetStartOptions func
-func GetStartOptions(fn GetStartOptionsFunc) Option {
+// WithGetStartOptions sets the SQS clients GetStartOptions func
+func WithGetStartOptions(fn GetStartOptionsFunc) Option {
 	return Option(func(s *SQS) {
 		s.GetStartOptions = fn
 	})
 }
 
-// FormatSpanName sets the SQS clients formant name func
-func FormatSpanName(fn FormatSpanNameFunc) Option {
+// WithFormatSpanName sets the SQS clients formant name func
+func WithFormatSpanName(fn FormatSpanNameFunc) Option {
 	return Option(func(s *SQS) {
 		s.FormatSpanName = fn
 	})
