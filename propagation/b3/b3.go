@@ -73,22 +73,26 @@ func (p *Propagator) SpanContextFromMessageAttributes(v interface{}) (trace.Span
 
 	kv := MessageAttributeValueToAttributes(v)
 
-	var ok bool
-	for k, v := range kv {
-		switch k {
-		case TraceIDKey:
-			tid, ok = b3.ParseTraceID(v)
-			if !ok {
-				return trace.SpanContext{}, false
-			}
-		case SpanIDKey:
-			sid, ok = b3.ParseSpanID(v)
-			if !ok {
-				return trace.SpanContext{}, false
-			}
-		case SpanSampledKey:
-			sampled, _ = b3.ParseSampled(v)
+	if v, ok := kv[TraceIDKey]; ok {
+		tid, ok = b3.ParseTraceID(v)
+		if !ok {
+			return trace.SpanContext{}, false
 		}
+	} else {
+		return trace.SpanContext{}, false
+	}
+
+	if v, ok := kv[SpanIDKey]; ok {
+		sid, ok = b3.ParseSpanID(v)
+		if !ok {
+			return trace.SpanContext{}, false
+		}
+	} else {
+		return trace.SpanContext{}, false
+	}
+
+	if v, ok := kv[SpanSampledKey]; ok {
+		sampled, _ = b3.ParseSampled(v)
 	}
 
 	return trace.SpanContext{

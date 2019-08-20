@@ -19,6 +19,7 @@ import (
 	"go.krak3n.codes/ocaws"
 	"go.krak3n.codes/ocaws/ocawstest"
 	"go.krak3n.codes/ocaws/propagation"
+	"go.krak3n.codes/ocaws/propagation/b3"
 	"go.krak3n.codes/ocaws/propagation/propagationtest"
 	"go.opencensus.io/trace"
 )
@@ -283,6 +284,65 @@ func Test_send(t *testing.T) {
 			_, err := send(tc.ctx, tc.sender(t, srv.URL), tc.propagator, tc.in)
 			assert.Equal(t, tc.err, err)
 			assert.Equal(t, tc.attributes, tc.in.MessageAttributes)
+		})
+	}
+}
+
+func TestSQS_ContextWithSpanFromMessage(t *testing.T) {
+	type TestCase struct {
+		tName      string
+		msg        *sqs.Message
+		propagator propagation.Propagator
+		ctx        context.Context
+	}
+	tt := []TestCase{
+		{
+			tName:      "no span on message",
+			msg:        &sqs.Message{},
+			propagator: b3.New(),
+			ctx:        context.Background(),
+		},
+		{
+			tName: "context with b3 span",
+			msg: &sqs.Message{
+				MessageAttributes: map[string]*sqs.MessageAttributeValue{
+					b3.TraceIDKey: &sqs.MessageAttributeValue{
+						DataType:    aws.String("String"),
+						StringValue: aws.String(ocawstest.DefaultTraceID.String()),
+					},
+					b3.SpanIDKey: &sqs.MessageAttributeValue{
+						DataType:    aws.String("String"),
+						StringValue: aws.String(ocawstest.DefaultSpanID.String()),
+					},
+					b3.SpanSampledKey: &sqs.MessageAttributeValue{
+						DataType:    aws.String("String"),
+						StringValue: aws.String("0"),
+					},
+				},
+			},
+			propagator: b3.New(),
+			ctx: func() context.Context {
+				return context.WithValue(context.Background(), spanContextKey{}, trace.SpanContext{
+					TraceID:      ocawstest.DefaultTraceID,
+					SpanID:       ocawstest.DefaultSpanID,
+					TraceOptions: trace.TraceOptions(0),
+				})
+			}(),
+		},
+	}
+	for _, tc := range tt {
+		tc := tc
+		t.Run(tc.tName, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+			s := &SQS{
+				Propagator: tc.propagator,
+			}
+
+			ctx = s.ContextWithSpanFromMessage(ctx, tc.msg)
+
+			assert.Equal(t, tc.ctx, ctx)
 		})
 	}
 }
