@@ -128,18 +128,18 @@ type sender interface {
 // send sends message to an SQS queue adding span cotnext message attributes for
 // propagation according to the given Propagator
 func send(ctx aws.Context, sender sender, propagator propagation.Propagator, in *sqs.SendMessageInput) (*sqs.SendMessageOutput, error) {
-	if in.MessageAttributes == nil {
-		in.MessageAttributes = make(map[string]*sqs.MessageAttributeValue)
-	}
-
 	if span := trace.FromContext(ctx); span != nil {
-		propagator.SpanContextToMessageAttributes(span.SpanContext(), in.MessageAttributes)
-	}
+		if in.MessageAttributes == nil {
+			in.MessageAttributes = make(map[string]*sqs.MessageAttributeValue)
+		}
 
-	if in.QueueUrl != nil {
-		in.MessageAttributes[ocaws.TraceQueueURL] = &sqs.MessageAttributeValue{
-			StringValue: in.QueueUrl,
-			DataType:    aws.String("String"),
+		if ok := propagator.SpanContextToMessageAttributes(span.SpanContext(), in.MessageAttributes); ok {
+			if in.QueueUrl != nil {
+				in.MessageAttributes[ocaws.TraceQueueURL] = &sqs.MessageAttributeValue{
+					StringValue: in.QueueUrl,
+					DataType:    aws.String("String"),
+				}
+			}
 		}
 	}
 
