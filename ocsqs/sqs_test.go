@@ -410,7 +410,6 @@ func TestSQS_StartSpanFromMessage(t *testing.T) {
 				}
 			},
 		},
-
 		{
 			tName: "get start options",
 			message: func() *sqs.Message {
