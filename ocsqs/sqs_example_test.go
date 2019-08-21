@@ -2,6 +2,7 @@ package ocsqs_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -77,6 +78,46 @@ func ExampleSQS_SendMessageContext() {
 }
 
 func ExampleSQS_StartSpanFromMessage() {
+	attr, _ := json.Marshal(map[string]map[string]string{
+		b3.TraceIDKey: map[string]string{
+			"Value": ocawstest.DefaultTraceID.String(),
+		},
+		b3.SpanIDKey: map[string]string{
+			"Value": ocawstest.DefaultSpanID.String(),
+		},
+		b3.SpanSampledKey: map[string]string{
+			"Value": "0",
+		},
+	})
+
+	body, _ := json.Marshal(map[string]json.RawMessage{
+		"MessageAttributes": attr,
+	})
+
+	msg := &sqs.Message{
+		Body: aws.String(string(body)),
+	}
+
+	c := ocsqs.New(sqs.New(sess))
+
+	ctx := context.Background()
+	ctx, span := c.StartSpanFromMessage(ctx, msg)
+	defer span.End()
+
+	if span != nil {
+		sc := span.SpanContext()
+		fmt.Println("TraceID:", sc.TraceID.String())
+		fmt.Println("SpanID:", sc.SpanID.String())
+		fmt.Println("Span Sampled:", sc.IsSampled())
+	}
+
+	// Output:
+	// TraceID: 616263646566676869676b6c6d6e6f71
+	// SpanID: 6162636465666768
+	// Span Sampled: false
+}
+
+func ExampleSQS_StartSpanFromMessage_with_raw_message_delivery() {
 	// Create a message with trace attributes, publish a message via SNS or SQS
 	msg := &sqs.Message{
 		MessageAttributes: map[string]*sqs.MessageAttributeValue{
@@ -95,7 +136,7 @@ func ExampleSQS_StartSpanFromMessage() {
 		},
 	}
 
-	c := ocsqs.New(sqs.New(sess))
+	c := ocsqs.New(sqs.New(sess), ocsqs.WithRawMessageDelivery())
 
 	ctx := context.Background()
 	ctx, span := c.StartSpanFromMessage(ctx, msg)

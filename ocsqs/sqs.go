@@ -2,6 +2,7 @@ package ocsqs // import "go.krak3n.codes/ocaws/ocsqs"
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -56,6 +57,14 @@ func WithFormatSpanName(fn FormatSpanNameFunc) Option {
 	})
 }
 
+// WithRawMessageDelivery sets the SQS client to expect message to be published
+// via SNS subscriptions with RawMessageDelivery enabled
+func WithRawMessageDelivery() Option {
+	return Option(func(s *SQS) {
+		s.RawMessageDelivery = true
+	})
+}
+
 // SQSAPI embeds the sqsiface.SQSAPI interface and extends it to include methods
 // for sending messages with span context and starting spans from messages.
 type SQSAPI interface {
@@ -89,6 +98,12 @@ type SQS struct {
 	// FormatSpanName formats the span name based on the given sqs.Message. See
 	// DefaultFormatSpanName for the default format
 	FormatSpanName FormatSpanNameFunc
+
+	// If you have setup your SQS SNS subscription to use RawMessageDelivery you
+	// should enable this using the WithRawMessageDelivery. The raw message
+	// attributes will be passed to the Propagator directly rather than
+	// unmarshalling the message body to build the message attrubutes
+	RawMessageDelivery bool
 }
 
 // New constructs a new SQS client with default configuration values. Use
@@ -155,7 +170,38 @@ func send(ctx aws.Context, sender sender, propagator propagation.Propagator, in 
 
 // StartSpanFromMessage a span from an sqs.Message
 func (s *SQS) StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (context.Context, *trace.Span) {
-	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(msg.MessageAttributes)
+	var attr map[string]*sqs.MessageAttributeValue
+
+	// Handle RawMessageDelivery
+	if s.RawMessageDelivery {
+		attr = msg.MessageAttributes
+	} else {
+		attr = map[string]*sqs.MessageAttributeValue{}
+		if msg.Body == nil {
+			return trace.StartSpan(ctx, s.FormatSpanName(msg))
+		}
+
+		dst := map[string]json.RawMessage{}
+		if err := json.Unmarshal([]byte(*msg.Body), &dst); err != nil {
+			return trace.StartSpan(ctx, s.FormatSpanName(msg))
+		}
+
+		if v, ok := dst["MessageAttributes"]; ok {
+			dst := map[string]map[string]string{}
+			if err := json.Unmarshal(v, &dst); err != nil {
+				return trace.StartSpan(ctx, s.FormatSpanName(msg))
+			}
+
+			for k, v := range dst {
+				attr[k] = &sqs.MessageAttributeValue{
+					DataType:    aws.String("String"),
+					StringValue: aws.String(v["Value"]),
+				}
+			}
+		}
+	}
+
+	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(attr)
 	if !ok {
 		return trace.StartSpan(ctx, s.FormatSpanName(msg))
 	}

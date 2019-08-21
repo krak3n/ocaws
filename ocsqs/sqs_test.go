@@ -2,6 +2,7 @@ package ocsqs
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -76,6 +77,12 @@ func TestWithFormatSpanName(t *testing.T) {
 	fn1 := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 	fn2 := runtime.FuncForPC(reflect.ValueOf(c.FormatSpanName).Pointer()).Name()
 	assert.Equal(t, fn1, fn2)
+}
+
+func TestWithRawMessageDelivery(t *testing.T) {
+	c := New(nil, WithRawMessageDelivery())
+
+	assert.True(t, c.RawMessageDelivery)
 }
 
 func Test_send(t *testing.T) {
@@ -298,7 +305,7 @@ func TestSQS_StartSpanFromMessage(t *testing.T) {
 	}
 	tt := []TestCase{
 		{
-			tName:   "no message attributes",
+			tName:   "nil message body",
 			message: &sqs.Message{},
 			client: &SQS{
 				Propagator: b3.New(),
@@ -317,7 +324,97 @@ func TestSQS_StartSpanFromMessage(t *testing.T) {
 			},
 		},
 		{
-			tName: "with get start options",
+			tName: "malformed message attrubutes",
+			message: &sqs.Message{
+				Body: aws.String(`{"MessageAttributes":"foo"}`),
+			},
+			client: &SQS{
+				Propagator: b3.New(),
+				FormatSpanName: func(*sqs.Message) string {
+					return "Foo"
+				},
+			},
+			assertions: func(t *testing.T, ctx context.Context, span *trace.Span) {
+				t.Helper()
+
+				if assert.NotNil(t, span) {
+					sctx := span.SpanContext()
+					assert.Equal(t, ocawstest.DefaultTraceID, sctx.TraceID)
+					assert.Equal(t, ocawstest.DefaultSpanID, sctx.SpanID)
+				}
+			},
+		},
+		{
+			tName: "malformed message attrubute values",
+			message: &sqs.Message{
+				Body: aws.String(`{"MessageAttributes":"{"Foo":"bar"}"}`),
+			},
+			client: &SQS{
+				Propagator: b3.New(),
+				FormatSpanName: func(*sqs.Message) string {
+					return "Foo"
+				},
+			},
+			assertions: func(t *testing.T, ctx context.Context, span *trace.Span) {
+				t.Helper()
+
+				if assert.NotNil(t, span) {
+					sctx := span.SpanContext()
+					assert.Equal(t, ocawstest.DefaultTraceID, sctx.TraceID)
+					assert.Equal(t, ocawstest.DefaultSpanID, sctx.SpanID)
+				}
+			},
+		},
+		{
+			tName: "get start options",
+			message: func() *sqs.Message {
+				attr, err := json.Marshal(map[string]map[string]string{
+					b3.TraceIDKey: map[string]string{
+						"Value": ocawstest.DefaultTraceID.String(),
+					},
+					b3.SpanIDKey: map[string]string{
+						"Value": ocawstest.DefaultSpanID.String(),
+					},
+					b3.SpanSampledKey: map[string]string{
+						"Value": "0",
+					},
+				})
+				require.NoError(t, err)
+
+				body, err := json.Marshal(map[string]json.RawMessage{
+					"MessageAttributes": attr,
+				})
+				require.NoError(t, err)
+
+				return &sqs.Message{
+					Body: aws.String(string(body)),
+				}
+			}(),
+			client: &SQS{
+				Propagator: b3.New(),
+				FormatSpanName: func(*sqs.Message) string {
+					return "Foo"
+				},
+				GetStartOptions: func(*sqs.Message) trace.StartOptions {
+					return trace.StartOptions{
+						SpanKind: trace.SpanKindClient,
+						Sampler:  trace.AlwaysSample(),
+					}
+				},
+			},
+			assertions: func(t *testing.T, ctx context.Context, span *trace.Span) {
+				t.Helper()
+
+				if assert.NotNil(t, span) {
+					sctx := span.SpanContext()
+					assert.Equal(t, ocawstest.DefaultTraceID, sctx.TraceID)
+					assert.Equal(t, ocawstest.DefaultSpanID, sctx.SpanID)
+					assert.Equal(t, trace.TraceOptions(1), sctx.TraceOptions)
+				}
+			},
+		},
+		{
+			tName: "with raw message delivery and get start options",
 			message: &sqs.Message{
 				MessageAttributes: map[string]*sqs.MessageAttributeValue{
 					b3.TraceIDKey: &sqs.MessageAttributeValue{
@@ -345,6 +442,7 @@ func TestSQS_StartSpanFromMessage(t *testing.T) {
 						Sampler:  trace.AlwaysSample(),
 					}
 				},
+				RawMessageDelivery: true,
 			},
 			assertions: func(t *testing.T, ctx context.Context, span *trace.Span) {
 				t.Helper()
