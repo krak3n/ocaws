@@ -161,6 +161,34 @@ func TestSpanContextFromMessageAttributes(t *testing.T) {
 	}
 	tt := []TestCase{
 		{
+			tName: "no trace ID",
+			in: map[string]*sns.MessageAttributeValue{
+				SpanIDKey: &sns.MessageAttributeValue{
+					DataType:    aws.String("String"),
+					StringValue: aws.String(ocawstest.DefaultSpanID.String()),
+				},
+				SpanSampledKey: &sns.MessageAttributeValue{
+					DataType:    aws.String("String"),
+					StringValue: aws.String("0"),
+				},
+			},
+			ok: false,
+		},
+		{
+			tName: "no span ID",
+			in: map[string]*sns.MessageAttributeValue{
+				TraceIDKey: &sns.MessageAttributeValue{
+					DataType:    aws.String("String"),
+					StringValue: aws.String(ocawstest.DefaultTraceID.String()),
+				},
+				SpanSampledKey: &sns.MessageAttributeValue{
+					DataType:    aws.String("String"),
+					StringValue: aws.String("0"),
+				},
+			},
+			ok: false,
+		},
+		{
 			tName: "invalid trace ID",
 			in: map[string]*sns.MessageAttributeValue{
 				TraceIDKey: &sns.MessageAttributeValue{
