@@ -366,6 +366,52 @@ func TestSQS_StartSpanFromMessage(t *testing.T) {
 			},
 		},
 		{
+			tName: "SpanContextFromMessageAttributes not ok",
+			message: func() *sqs.Message {
+				attr, err := json.Marshal(map[string]map[string]string{
+					b3.TraceIDKey: map[string]string{
+						"Value": ocawstest.DefaultTraceID.String(),
+					},
+					b3.SpanIDKey: map[string]string{
+						"Value": ocawstest.DefaultSpanID.String(),
+					},
+					b3.SpanSampledKey: map[string]string{
+						"Value": "0",
+					},
+				})
+				require.NoError(t, err)
+
+				body, err := json.Marshal(map[string]json.RawMessage{
+					"MessageAttributes": attr,
+				})
+				require.NoError(t, err)
+
+				return &sqs.Message{
+					Body: aws.String(string(body)),
+				}
+			}(),
+			client: &SQS{
+				Propagator: &propagationtest.TestPropator{
+					SpanContextFromMessageAttributesFunc: func(interface{}) (trace.SpanContext, bool) {
+						return trace.SpanContext{}, false
+					},
+				},
+				FormatSpanName: func(*sqs.Message) string {
+					return "Foo"
+				},
+			},
+			assertions: func(t *testing.T, ctx context.Context, span *trace.Span) {
+				t.Helper()
+
+				if assert.NotNil(t, span) {
+					sctx := span.SpanContext()
+					assert.Equal(t, ocawstest.DefaultTraceID, sctx.TraceID)
+					assert.Equal(t, ocawstest.DefaultSpanID, sctx.SpanID)
+				}
+			},
+		},
+
+		{
 			tName: "get start options",
 			message: func() *sqs.Message {
 				attr, err := json.Marshal(map[string]map[string]string{
