@@ -288,6 +288,89 @@ func Test_send(t *testing.T) {
 	}
 }
 
+func TestSQS_StartSpanFromMessage(t *testing.T) {
+	type AssertFunc func(t *testing.T, ctx context.Context, span *trace.Span)
+	type TestCase struct {
+		tName      string
+		message    *sqs.Message
+		client     *SQS
+		assertions AssertFunc
+	}
+	tt := []TestCase{
+		{
+			tName:   "no message attributes",
+			message: &sqs.Message{},
+			client: &SQS{
+				Propagator: b3.New(),
+				FormatSpanName: func(*sqs.Message) string {
+					return "Foo"
+				},
+			},
+			assertions: func(t *testing.T, ctx context.Context, span *trace.Span) {
+				t.Helper()
+
+				if assert.NotNil(t, span) {
+					sctx := span.SpanContext()
+					assert.Equal(t, ocawstest.DefaultTraceID, sctx.TraceID)
+					assert.Equal(t, ocawstest.DefaultSpanID, sctx.SpanID)
+				}
+			},
+		},
+		{
+			tName: "with get start options",
+			message: &sqs.Message{
+				MessageAttributes: map[string]*sqs.MessageAttributeValue{
+					b3.TraceIDKey: &sqs.MessageAttributeValue{
+						DataType:    aws.String("String"),
+						StringValue: aws.String(ocawstest.DefaultTraceID.String()),
+					},
+					b3.SpanIDKey: &sqs.MessageAttributeValue{
+						DataType:    aws.String("String"),
+						StringValue: aws.String(ocawstest.DefaultSpanID.String()),
+					},
+					b3.SpanSampledKey: &sqs.MessageAttributeValue{
+						DataType:    aws.String("String"),
+						StringValue: aws.String("0"),
+					},
+				},
+			},
+			client: &SQS{
+				Propagator: b3.New(),
+				FormatSpanName: func(*sqs.Message) string {
+					return "Foo"
+				},
+				GetStartOptions: func(*sqs.Message) trace.StartOptions {
+					return trace.StartOptions{
+						SpanKind: trace.SpanKindClient,
+						Sampler:  trace.AlwaysSample(),
+					}
+				},
+			},
+			assertions: func(t *testing.T, ctx context.Context, span *trace.Span) {
+				t.Helper()
+
+				if assert.NotNil(t, span) {
+					sctx := span.SpanContext()
+					assert.Equal(t, ocawstest.DefaultTraceID, sctx.TraceID)
+					assert.Equal(t, ocawstest.DefaultSpanID, sctx.SpanID)
+					assert.Equal(t, trace.TraceOptions(1), sctx.TraceOptions)
+				}
+			},
+		},
+	}
+	for _, tc := range tt {
+		tc := tc
+		t.Run(tc.tName, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+			ctx, span := tc.client.StartSpanFromMessage(ctx, tc.message)
+
+			tc.assertions(t, ctx, span)
+		})
+	}
+}
+
 func TestSQS_ContextWithSpanFromMessage(t *testing.T) {
 	type TestCase struct {
 		tName      string
