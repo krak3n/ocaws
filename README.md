@@ -25,3 +25,12 @@ allowing you to easily propagate spans across SQS/SNS messages.
 ```
 go get go.krak3n.codes/ocaws
 ```
+
+# Documentation
+
+Please see the [![Documentation][godoc-image]][godoc-url] for code examples and
+documentation.
+
+# Example
+
+Please see the [example](example) directory for a full end to end example code.
