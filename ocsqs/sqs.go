@@ -170,38 +170,7 @@ func send(ctx aws.Context, sender sender, propagator propagation.Propagator, in 
 
 // StartSpanFromMessage a span from an sqs.Message
 func (s *SQS) StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (context.Context, *trace.Span) {
-	var attr map[string]*sqs.MessageAttributeValue
-
-	// Handle RawMessageDelivery
-	if s.RawMessageDelivery {
-		attr = msg.MessageAttributes
-	} else {
-		attr = map[string]*sqs.MessageAttributeValue{}
-		if msg.Body == nil {
-			return trace.StartSpan(ctx, s.FormatSpanName(msg))
-		}
-
-		dst := map[string]json.RawMessage{}
-		if err := json.Unmarshal([]byte(*msg.Body), &dst); err != nil {
-			return trace.StartSpan(ctx, s.FormatSpanName(msg))
-		}
-
-		if v, ok := dst["MessageAttributes"]; ok {
-			dst := map[string]map[string]string{}
-			if err := json.Unmarshal(v, &dst); err != nil {
-				return trace.StartSpan(ctx, s.FormatSpanName(msg))
-			}
-
-			for k, v := range dst {
-				attr[k] = &sqs.MessageAttributeValue{
-					DataType:    aws.String("String"),
-					StringValue: aws.String(v["Value"]),
-				}
-			}
-		}
-	}
-
-	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(attr)
+	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(s.getMessageAttributes(msg))
 	if !ok {
 		return trace.StartSpan(ctx, s.FormatSpanName(msg))
 	}
@@ -222,12 +191,47 @@ func (s *SQS) StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (conte
 // ContextWithSpanFromMessage will add a span context from a message onto the given
 // context retuning a new context, this allows for defered starting of spans
 func (s *SQS) ContextWithSpanFromMessage(ctx context.Context, msg *sqs.Message) context.Context {
-	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(msg.MessageAttributes)
+	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(s.getMessageAttributes(msg))
 	if !ok {
 		return ctx
 	}
 
 	return context.WithValue(ctx, spanContextKey{}, sctx)
+}
+
+// getMessageAttributes returns message attributes from an SQS message, if
+// RawMessageDelivery is enabled the message attributes are returned else the
+// message body is unmarshaled and message attributes are built from the body
+func (s *SQS) getMessageAttributes(msg *sqs.Message) map[string]*sqs.MessageAttributeValue {
+	if s.RawMessageDelivery {
+		return msg.MessageAttributes
+	}
+
+	attr := map[string]*sqs.MessageAttributeValue{}
+	if msg.Body == nil {
+		return nil
+	}
+
+	dst := map[string]json.RawMessage{}
+	if err := json.Unmarshal([]byte(*msg.Body), &dst); err != nil {
+		return nil
+	}
+
+	if v, ok := dst["MessageAttributes"]; ok {
+		dst := map[string]map[string]string{}
+		if err := json.Unmarshal(v, &dst); err != nil {
+			return nil
+		}
+
+		for k, v := range dst {
+			attr[k] = &sqs.MessageAttributeValue{
+				DataType:    aws.String("String"),
+				StringValue: aws.String(v["Value"]),
+			}
+		}
+	}
+
+	return attr
 }
 
 // SpanFromContext will return a span context from context

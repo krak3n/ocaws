@@ -174,7 +174,7 @@ func ExampleSQS_ContextWithSpanFromMessage() {
 		},
 	}
 
-	c := ocsqs.New(sqs.New(sess))
+	c := ocsqs.New(sqs.New(sess), ocsqs.WithRawMessageDelivery())
 
 	ctx := context.Background()
 	ctx = c.ContextWithSpanFromMessage(ctx, msg)

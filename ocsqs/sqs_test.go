@@ -516,10 +516,11 @@ func TestSQS_StartSpanFromMessage(t *testing.T) {
 
 func TestSQS_ContextWithSpanFromMessage(t *testing.T) {
 	type TestCase struct {
-		tName      string
-		msg        *sqs.Message
-		propagator propagation.Propagator
-		ctx        context.Context
+		tName              string
+		msg                *sqs.Message
+		propagator         propagation.Propagator
+		rawMessageDelivery bool
+		ctx                context.Context
 	}
 	tt := []TestCase{
 		{
@@ -529,7 +530,7 @@ func TestSQS_ContextWithSpanFromMessage(t *testing.T) {
 			ctx:        context.Background(),
 		},
 		{
-			tName: "context with b3 span",
+			tName: "context with b3 span raw message delivery",
 			msg: &sqs.Message{
 				MessageAttributes: map[string]*sqs.MessageAttributeValue{
 					b3.TraceIDKey: &sqs.MessageAttributeValue{
@@ -546,7 +547,8 @@ func TestSQS_ContextWithSpanFromMessage(t *testing.T) {
 					},
 				},
 			},
-			propagator: b3.New(),
+			propagator:         b3.New(),
+			rawMessageDelivery: true,
 			ctx: func() context.Context {
 				return context.WithValue(context.Background(), spanContextKey{}, trace.SpanContext{
 					TraceID:      ocawstest.DefaultTraceID,
@@ -563,7 +565,8 @@ func TestSQS_ContextWithSpanFromMessage(t *testing.T) {
 
 			ctx := context.Background()
 			s := &SQS{
-				Propagator: tc.propagator,
+				Propagator:         tc.propagator,
+				RawMessageDelivery: tc.rawMessageDelivery,
 			}
 
 			ctx = s.ContextWithSpanFromMessage(ctx, tc.msg)
