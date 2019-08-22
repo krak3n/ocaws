@@ -10,6 +10,11 @@ subscription.
 Configuration is handled using environment variables, a full list can be found
 below.
 
+By default Jaeger is used as the OpenCensus exporter and is configured to be
+running locally. Either start a Jaeger docker container as described here:
+https://www.jaegertracing.io/docs/1.13/getting-started/#all-in-one OR use the
+provided `docker-compose` which will also start a Localstack: `make compose-up`.
+
 ## Running against Localstack
 
 To run against Localstack you'll need `docker` and `docker-compose`. Install
