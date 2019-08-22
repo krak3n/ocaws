@@ -59,6 +59,8 @@ You should then see log output similar to the following:
 }
 ```
 
+Now navigate to Jaeger which will be running locally to view your traces: http://localhost:16686/
+
 Once you are done you can shut Localstack down:
 
 ```
