@@ -1,6 +1,6 @@
 /*Package ocsqs provides a drop in replacement for your exisitng SQS client
-* providing methods for persisiting and creating spans from SQS message
-* attributes.
+providing methods for persisiting and creating spans from SQS message
+attributes.
 
     client := ocsqs.New(sqs.New(session))
 
