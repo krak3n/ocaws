@@ -56,7 +56,7 @@ func TestWithStartOptions(t *testing.T) {
 }
 
 func TestWithGetStartOptions(t *testing.T) {
-	var fn GetStartOptionsFunc = GetStartOptionsFunc(func(*sqs.Message) trace.StartOptions {
+	var fn = GetStartOptionsFunc(func(*sqs.Message) trace.StartOptions {
 		return trace.StartOptions{
 			SpanKind: trace.SpanKindClient,
 		}
@@ -69,7 +69,7 @@ func TestWithGetStartOptions(t *testing.T) {
 }
 
 func TestWithFormatSpanName(t *testing.T) {
-	var fn FormatSpanNameFunc = FormatSpanNameFunc(func(*sqs.Message) string {
+	var fn = FormatSpanNameFunc(func(*sqs.Message) string {
 		return "foo"
 	})
 	c := New(nil, WithFormatSpanName(fn))

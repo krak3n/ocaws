@@ -140,6 +140,4 @@ func Localstack(s *ocsns.SNS, q *ocsqs.SQS) error {
 	}
 
 	log.Println("Localstack: Created Subscription:", *sub.SubscriptionArn)
-
-	return nil
 }

@@ -29,7 +29,7 @@ func New() *Propagator {
 }
 
 // SpanContextToMessageAttributes takes a trace.SpanContext and adds attributes
-// to a given sqs / sns message
+// to a given SQS / SNS message
 func (p *Propagator) SpanContextToMessageAttributes(sc trace.SpanContext, t interface{}) bool {
 	sampled := "0"
 	if sc.IsSampled() {
@@ -62,7 +62,7 @@ func (p *Propagator) SpanContextToMessageAttributes(sc trace.SpanContext, t inte
 	return true
 }
 
-// SpanContextFromMessageAttributes returns a trace.SpanContext based on a sqs
+// SpanContextFromMessageAttributes returns a trace.SpanContext based on a SQS
 // message
 func (p *Propagator) SpanContextFromMessageAttributes(v interface{}) (trace.SpanContext, bool) {
 	var (
@@ -110,17 +110,15 @@ func MessageAttributeValueToAttributes(v interface{}) Attributes {
 	switch t := v.(type) {
 	case map[string]*sqs.MessageAttributeValue:
 		for k, v := range t {
-			if v.StringValue == nil {
-				continue
+			if v.StringValue != nil {
+				attr[k] = *v.StringValue
 			}
-			attr[k] = *v.StringValue
 		}
 	case map[string]*sns.MessageAttributeValue:
 		for k, v := range t {
-			if v.StringValue == nil {
-				continue
+			if v.StringValue != nil {
+				attr[k] = *v.StringValue
 			}
-			attr[k] = *v.StringValue
 		}
 	}
 
