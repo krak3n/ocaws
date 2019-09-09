@@ -14,6 +14,7 @@ import (
 	"go.krak3n.codes/ocaws"
 	"go.krak3n.codes/ocaws/propagation"
 	"go.krak3n.codes/ocaws/propagation/b3"
+	"go.opencensus.io/tag"
 	"go.opencensus.io/trace"
 )
 
@@ -180,12 +181,16 @@ func (s *SQS) StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (conte
 		opts = s.GetStartOptions(msg)
 	}
 
-	return trace.StartSpanWithRemoteParent(
+	ctx, span := trace.StartSpanWithRemoteParent(
 		ctx,
 		s.FormatSpanName(msg),
 		sctx,
 		trace.WithSpanKind(trace.SpanKindServer),
 		trace.WithSampler(opts.Sampler))
+
+	ctx, _ = tag.New(ctx)
+
+	return ctx, span
 }
 
 // ContextWithSpanFromMessage will add a span context from a message onto the given
