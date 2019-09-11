@@ -26,7 +26,7 @@ type GetStartOptionsFunc func(*sqs.Message) trace.StartOptions
 // A FormatSpanNameFunc formats a span name from the sqs message
 type FormatSpanNameFunc func(*sqs.Message) string
 
-// An Option function customises a clients configuration
+// An Option function customizes a clients configuration
 type Option func(s *SQS)
 
 // WithPropagator sets the clients propagator
@@ -102,12 +102,12 @@ type SQS struct {
 	// If you have setup your SQS SNS subscription to use RawMessageDelivery you
 	// should enable this using the WithRawMessageDelivery. The raw message
 	// attributes will be passed to the Propagator directly rather than
-	// unmarshalling the message body to build the message attrubutes
+	// unmarshalling the message body to build the message attributes
 	RawMessageDelivery bool
 }
 
 // New constructs a new SQS client with default configuration values. Use
-// Option functions to customise configuration. By default the propagator used
+// Option functions to customize configuration. By default the propagator used
 // is B3.
 func New(client *sqs.SQS, opts ...Option) *SQS {
 	s := &SQS{
@@ -140,7 +140,7 @@ type sender interface {
 	SendMessageRequest(*sqs.SendMessageInput) (*request.Request, *sqs.SendMessageOutput)
 }
 
-// send sends message to an SQS queue adding span cotnext message attributes for
+// send sends message to an SQS queue adding span context message attributes for
 // propagation according to the given Propagator
 func send(ctx aws.Context, sender sender, propagator propagation.Propagator, in *sqs.SendMessageInput) (*sqs.SendMessageOutput, error) {
 	if span := trace.FromContext(ctx); span != nil {
@@ -189,7 +189,7 @@ func (s *SQS) StartSpanFromMessage(ctx context.Context, msg *sqs.Message) (conte
 }
 
 // ContextWithSpanFromMessage will add a span context from a message onto the given
-// context retuning a new context, this allows for defered starting of spans
+// context returning a new context, this allows for deferred starting of spans
 func (s *SQS) ContextWithSpanFromMessage(ctx context.Context, msg *sqs.Message) context.Context {
 	sctx, ok := s.Propagator.SpanContextFromMessageAttributes(s.getMessageAttributes(msg))
 	if !ok {
@@ -200,7 +200,7 @@ func (s *SQS) ContextWithSpanFromMessage(ctx context.Context, msg *sqs.Message) 
 }
 
 // getMessageAttributes returns message attributes from an SQS message, if
-// RawMessageDelivery is enabled the message attributes are returned else the
+// RawMessageDelivery is enabled the message attributes are returned, else the
 // message body is unmarshaled and message attributes are built from the body
 func (s *SQS) getMessageAttributes(msg *sqs.Message) map[string]*sqs.MessageAttributeValue {
 	if s.RawMessageDelivery {

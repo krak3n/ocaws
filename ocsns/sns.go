@@ -12,7 +12,7 @@ import (
 	"go.opencensus.io/trace"
 )
 
-// An Option function customises a clients configuration
+// An Option function customizes a clients configuration
 type Option func(*SNS)
 
 // WithPropagator sets the clients propagator
@@ -59,7 +59,7 @@ type publisher interface {
 	PublishWithContext(ctx aws.Context, input *sns.PublishInput, opts ...request.Option) (*sns.PublishOutput, error)
 }
 
-// publish piblishes messages to SNS
+// publish publishes messages to SNS
 func publish(ctx aws.Context, publisher publisher, propagator propagation.Propagator, in *sns.PublishInput, opts ...request.Option) (*sns.PublishOutput, error) {
 	if span := trace.FromContext(ctx); span != nil {
 		if in.MessageAttributes == nil {
@@ -80,7 +80,7 @@ func publish(ctx aws.Context, publisher publisher, propagator propagation.Propag
 }
 
 // topicNameFromARN grabs the topic name from an ARN, this breaks the ARN at
-// : and rteturns the last element of the slice
+// : and returns the last element of the slice
 func topicNameFromARN(arn string) string {
 	parts := strings.Split(arn, ":")
 	return parts[len(parts)-1]
