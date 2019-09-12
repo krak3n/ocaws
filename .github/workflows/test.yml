@@ -16,3 +16,8 @@ jobs:
       uses: actions/checkout@v1
     - name: Test
       run: go test ./...
+      env:
+        AWS_SNS_ENDPOINT: http://localhost:4575
+        AWS_SQS_ENDPOINT: http://localhost:4576
+        AWS_ACCESS_KEY_ID: foo
+        AWS_SECRET_ACCESS_KEY: bar
