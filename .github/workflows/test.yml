@@ -8,7 +8,7 @@ jobs:
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     services:
-      postgres:
+      localstack:
         image: localstack/localstack:0.10.2
         env:
           SERVICES: sqs,sns
@@ -25,7 +25,7 @@ jobs:
     - name: Test
       run: go test ./...
       env:
-        AWS_SNS_ENDPOINT: http://localhost:4575
-        AWS_SQS_ENDPOINT: http://localhost:4576
+        AWS_SNS_ENDPOINT: http://localstack:${{ job.services.localstack.ports[4575] }}
+        AWS_SQS_ENDPOINT: http://localstack:${{ job.services.localstack.ports[4576] }}
         AWS_ACCESS_KEY_ID: foo
         AWS_SECRET_ACCESS_KEY: bar
