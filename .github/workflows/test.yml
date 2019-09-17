@@ -3,6 +3,7 @@ on: [push]
 jobs:
 
   build:
+
     name: Build
     runs-on: ubuntu-latest
 
@@ -11,6 +12,9 @@ jobs:
         image: localstack/localstack:0.10.2
         env:
           SERVICES: sqs,sns
+        ports:
+        - 4575:4575
+        - 4576:4576
 
     steps:
 
