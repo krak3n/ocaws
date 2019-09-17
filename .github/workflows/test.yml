@@ -12,10 +12,12 @@ jobs:
         image: localstack/localstack:0.10.2
         env:
           SERVICES: sqs,sns
+          AWS_ACCESS_KEY_ID: foo
+          AWS_SECRET_ACCESS_KEY: bar
         ports:
         - 4575:4575
         - 4576:4576
-        options: --health-cmd "aws sqs list-queues && aws sns list-topics" --health-interval 10s --health-timeout 5s --health-retries 5
+        options: --health-cmd "aws --region eu-west-1 --endpoint=http://localhost:4576 sqs list-queues && aws --region eu-west-1 --endpoint=http://localhost:4575 sns list-topics" --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
 
