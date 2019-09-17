@@ -30,5 +30,7 @@ jobs:
     - name: Test
       run: go test -v ./...
       env:
+        AWS_ACCESS_KEY_ID: foo
+        AWS_SECRET_ACCESS_KEY: bar
         AWS_SNS_ENDPOINT: http://localstack:${{ job.services.localstack.ports[4575] }}
         AWS_SQS_ENDPOINT: http://localstack:${{ job.services.localstack.ports[4576] }}
