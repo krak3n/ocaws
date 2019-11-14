@@ -40,8 +40,8 @@ func init() {
 	sess = s
 }
 
-func ExampleSQS_SendMessageContext() {
-	ctx, span := trace.StartSpan(context.Background(), "sqs/ExampleSQS_SendMessageContext")
+func ExampleSQS_SendMessageWithContext() {
+	ctx, span := trace.StartSpan(context.Background(), "sqs/ExampleSQS_SendMessageWithContext")
 	defer span.End()
 
 	// Create SNS Client
@@ -61,7 +61,7 @@ func ExampleSQS_SendMessageContext() {
 		MessageBody: aws.String(`{"foo":"bar"}`),
 	}
 
-	if _, err := c.SendMessageContext(ctx, in); err != nil {
+	if _, err := c.SendMessageWithContext(ctx, in); err != nil {
 		log.Fatal(err)
 	}
 
@@ -77,7 +77,7 @@ func ExampleSQS_SendMessageContext() {
 	// Trace Queue URL: http://localhost:4576/queue/foo
 }
 
-func ExampleSQS_StartSpanFromMessage() {
+func ExampleStartSpan() {
 	attr, _ := json.Marshal(map[string]map[string]string{
 		b3.TraceIDKey: map[string]string{
 			"Value": ocawstest.DefaultTraceID.String(),
@@ -98,10 +98,8 @@ func ExampleSQS_StartSpanFromMessage() {
 		Body: aws.String(string(body)),
 	}
 
-	c := ocsqs.New(sqs.New(sess))
-
 	ctx := context.Background()
-	ctx, span := c.StartSpanFromMessage(ctx, msg)
+	ctx, span := ocsqs.StartSpan(ctx, msg)
 	defer span.End()
 
 	if span != nil {
@@ -117,7 +115,7 @@ func ExampleSQS_StartSpanFromMessage() {
 	// Span Sampled: false
 }
 
-func ExampleSQS_StartSpanFromMessage_with_raw_message_delivery() {
+func ExampleStartSpan_with_raw_message_delivery() {
 	// Create a message with trace attributes, publish a message via SNS or SQS
 	msg := &sqs.Message{
 		MessageAttributes: map[string]*sqs.MessageAttributeValue{
@@ -136,10 +134,8 @@ func ExampleSQS_StartSpanFromMessage_with_raw_message_delivery() {
 		},
 	}
 
-	c := ocsqs.New(sqs.New(sess), ocsqs.WithRawMessageDelivery())
-
 	ctx := context.Background()
-	ctx, span := c.StartSpanFromMessage(ctx, msg)
+	ctx, span := ocsqs.StartSpan(ctx, msg)
 	defer span.End()
 
 	if span != nil {
@@ -155,7 +151,7 @@ func ExampleSQS_StartSpanFromMessage_with_raw_message_delivery() {
 	// Span Sampled: false
 }
 
-func ExampleSQS_ContextWithSpanFromMessage() {
+func ExampleWithContext() {
 	// Create a message with trace attributes, publish a message via SNS or SQS
 	msg := &sqs.Message{
 		MessageAttributes: map[string]*sqs.MessageAttributeValue{
@@ -174,12 +170,8 @@ func ExampleSQS_ContextWithSpanFromMessage() {
 		},
 	}
 
-	c := ocsqs.New(sqs.New(sess), ocsqs.WithRawMessageDelivery())
-
 	ctx := context.Background()
-	ctx = c.ContextWithSpanFromMessage(ctx, msg)
-
-	sc, ok := ocsqs.SpanFromContext(ctx)
+	sc, ok := ocsqs.SpanFromContext(ocsqs.WithContext(ctx, msg))
 	if ok {
 		fmt.Println("TraceID:", sc.TraceID.String())
 		fmt.Println("SpanID:", sc.SpanID.String())

@@ -52,13 +52,7 @@ func NewSQS() *ocsqs.SQS {
 		log.Fatal(err)
 	}
 
-	opts := []ocsqs.Option{}
-	if viper.GetBool("sns.subscription.raw_message_delivery") {
-		log.Println("SQS: Enable Raw Message Delivery")
-		opts = append(opts, ocsqs.WithRawMessageDelivery())
-	}
-
-	return ocsqs.New(sqs.New(session), opts...)
+	return ocsqs.New(sqs.New(session))
 }
 
 // NewSNS constructs a new SNS client

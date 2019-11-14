@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/spf13/viper"
 	"go.krak3n.codes/ocaws/ocsqs"
 	"go.opencensus.io/trace"
@@ -18,14 +19,14 @@ type Handler func(context.Context, *sqs.Message) error
 
 // Client consumes messages from SQS
 type Client struct {
-	sqs    ocsqs.SQSAPI
+	sqs    sqsiface.SQSAPI
 	semC   chan struct{}
 	closeC chan struct{}
 	wg     sync.WaitGroup
 }
 
 // NewClient constructs a new client to process messages
-func NewClient(sqs ocsqs.SQSAPI) *Client {
+func NewClient(sqs sqsiface.SQSAPI) *Client {
 	return &Client{
 		sqs:    sqs,
 		semC:   make(chan struct{}, 10),
@@ -69,7 +70,7 @@ func (c *Client) Consume(ctx context.Context, handler Handler) error {
 				c.semC <- struct{}{}
 
 				go func(ctx context.Context, msg *sqs.Message) {
-					ctx, span := c.sqs.StartSpanFromMessage(ctx, msg)
+					ctx, span := ocsqs.StartSpan(ctx, msg)
 					defer span.End()
 
 					defer func() {
