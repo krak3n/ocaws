@@ -82,25 +82,22 @@ func SendMessageInputWithSpan(ctx context.Context, in *sqs.SendMessageInput, opt
 		opt(o)
 	}
 
-	in2 := new(sqs.SendMessageInput)
-	*in2 = *in
-
 	if span := trace.FromContext(ctx); span != nil {
-		if in2.MessageAttributes == nil {
-			in2.MessageAttributes = make(map[string]*sqs.MessageAttributeValue)
+		if in.MessageAttributes == nil {
+			in.MessageAttributes = make(map[string]*sqs.MessageAttributeValue)
 		}
 
-		if ok := o.Propagator.SpanContextToMessageAttributes(span.SpanContext(), in2.MessageAttributes); ok {
-			if in2.QueueUrl != nil {
-				in2.MessageAttributes[ocaws.TraceQueueURL] = &sqs.MessageAttributeValue{
-					StringValue: in2.QueueUrl,
+		if ok := o.Propagator.SpanContextToMessageAttributes(span.SpanContext(), in.MessageAttributes); ok {
+			if in.QueueUrl != nil {
+				in.MessageAttributes[ocaws.TraceQueueURL] = &sqs.MessageAttributeValue{
+					StringValue: in.QueueUrl,
 					DataType:    aws.String("String"),
 				}
 			}
 		}
 	}
 
-	return in2
+	return in
 }
 
 // GetMessageAttributes returns message attributes from an SQS message
