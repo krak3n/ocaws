@@ -1,17 +1,25 @@
 package ocsqs
 
+import (
+	"os"
+	"testing"
+
+	"go.krak3n.codes/ocaws/ocawstest"
+	"go.opencensus.io/trace"
+)
+
+func TestMain(m *testing.M) {
+	trace.ApplyConfig(trace.Config{
+		IDGenerator: ocawstest.NewTestIDGenerator(),
+	})
+
+	os.Exit(m.Run())
+}
+
 // type SendMessageRequestFunc func(*sqs.SendMessageInput) (*request.Request, *sqs.SendMessageOutput)
 //
 // func (fn SendMessageRequestFunc) SendMessageRequest(in *sqs.SendMessageInput) (*request.Request, *sqs.SendMessageOutput) {
 // 	return fn(in)
-// }
-//
-// func TestMain(m *testing.M) {
-// 	trace.ApplyConfig(trace.Config{
-// 		IDGenerator: ocawstest.NewTestIDGenerator(),
-// 	})
-//
-// 	os.Exit(m.Run())
 // }
 //
 // func TestWithPropagator(t *testing.T) {

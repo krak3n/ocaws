@@ -28,5 +28,6 @@ func New(client *sqs.SQS, opts ...Option) *SQS {
 // SendMessageWithContext shadows the sqs clients SendMessageWithContext adding trace span data to
 // the send message input
 func (s *SQS) SendMessageWithContext(ctx aws.Context, input *sqs.SendMessageInput, opts ...request.Option) (*sqs.SendMessageOutput, error) {
-	return s.SQS.SendMessageWithContext(ctx, SendMessageInputWithSpan(ctx, input, s.options...), opts...)
+	input = SendMessageInputWithSpan(ctx, input, s.options...)
+	return s.SQS.SendMessageWithContext(ctx, input, opts...)
 }
