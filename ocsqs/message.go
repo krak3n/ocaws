@@ -83,7 +83,7 @@ func SendMessageInputWithSpan(ctx context.Context, in *sqs.SendMessageInput, opt
 	}
 
 	in2 := new(sqs.SendMessageInput)
-	*in = *in2
+	*in2 = *in
 
 	if span := trace.FromContext(ctx); span != nil {
 		if in2.MessageAttributes == nil {
